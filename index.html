@@ -45,7 +45,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 html {
-  background: var(--cream);
+  background: #2a2a2a;
   min-width: 100vw;
 }
 
@@ -2488,12 +2488,15 @@ div[id^="kf-rate-val-"] {
   pointer-events: none;
 }
 .auth-inner {
-  max-width: 400px;
+  max-width: 520px;
   width: 100%;
   text-align: center;
   position: relative;
   z-index: 1;
   animation: fadeUp 0.6s ease both;
+}
+@media (min-width: 768px) {
+  .auth-inner { max-width: 580px; }
 }
 .auth-inner .welcome-logo { margin-bottom: 6px; }
 .auth-inner .welcome-tagline { margin-bottom: 36px; }
@@ -2730,7 +2733,7 @@ div[id^="kf-rate-val-"] {
           <hr class="results-dropdown-sep">
           <button class="results-dropdown-item" onclick="printResults(); closeResultsMenu()">🖨️ Print / Save as PDF</button>
           <hr class="results-dropdown-sep">
-          <button class="results-dropdown-item" onclick="signOut(); closeResultsMenu()">🚪 Log Out</button>
+          <button class="results-dropdown-item" onclick="confirmSignOut(); closeResultsMenu()">🚪 Log Out</button>
         </div>
       </div>
       <div style="display:none;">
@@ -2883,7 +2886,7 @@ div[id^="kf-rate-val-"] {
           <hr class="results-dropdown-sep">
           <button class="results-dropdown-item" onclick="printResults(); closeResultsMenu()">🖨️ Print / Save as PDF</button>
           <hr class="results-dropdown-sep">
-          <button class="results-dropdown-item" onclick="signOut(); closeResultsMenu()">🚪 Log Out</button>
+          <button class="results-dropdown-item" onclick="confirmSignOut(); closeResultsMenu()">🚪 Log Out</button>
         </div>
       </div>
       <div style="display:none;">
@@ -3104,7 +3107,7 @@ div[id^="kf-rate-val-"] {
           <hr class="results-dropdown-sep">
           <button class="results-dropdown-item" onclick="printResults(); closeResultsMenu()">🖨️ Print / Save as PDF</button>
           <hr class="results-dropdown-sep">
-          <button class="results-dropdown-item" onclick="signOut(); closeResultsMenu()">🚪 Log Out</button>
+          <button class="results-dropdown-item" onclick="confirmSignOut(); closeResultsMenu()">🚪 Log Out</button>
         </div>
       </div>
     </div>
@@ -3300,7 +3303,7 @@ div[id^="kf-rate-val-"] {
           <hr class="results-dropdown-sep">
           <button class="results-dropdown-item" onclick="printResults(); closeResultsMenu()">🖨️ Print / Save as PDF</button>
           <hr class="results-dropdown-sep">
-          <button class="results-dropdown-item" onclick="signOut(); closeResultsMenu()">🚪 Log Out</button>
+          <button class="results-dropdown-item" onclick="confirmSignOut(); closeResultsMenu()">🚪 Log Out</button>
         </div>
       </div>
     </div>
@@ -4015,6 +4018,12 @@ async function handleEmailAuth(e) {
   }
 }
 
+function confirmSignOut() {
+  if (confirm('Are you sure you want to log out?')) {
+    signOut();
+  }
+}
+
 async function signOut() {
   try {
     await _supabase.auth.signOut();
@@ -4082,12 +4091,21 @@ function debouncedSaveToSupabase() {
 // AUTH STATE LISTENER
 // ═══════════════════════════════════════
 
+let _authInitialized = false;
 _supabase.auth.onAuthStateChange(async (event, session) => {
-  if (event === 'SIGNED_IN' && session) {
+  if (event === 'INITIAL_SESSION') {
+    // Handled by DOMContentLoaded getSession() — skip to avoid double init
+    return;
+  }
+  if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session) {
     _currentUser = session.user;
-    await initAppWithAuth();
+    if (!_authInitialized) {
+      _authInitialized = true;
+      await initAppWithAuth();
+    }
   } else if (event === 'SIGNED_OUT') {
     _currentUser = null;
+    _authInitialized = false;
   }
 });
 
@@ -8572,6 +8590,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     const { data: { session } } = await _supabase.auth.getSession();
     if (session) {
       _currentUser = session.user;
+      _authInitialized = true;
       await initAppWithAuth();
       // Handle refresh — restore to previous screen
       const savedScreen = _store.get('homematch_activeScreen');
