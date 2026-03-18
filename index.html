@@ -5298,6 +5298,12 @@ function saveProperty() {
       prop.landscaping  = parseFloat(document.getElementById('hypo-landscaping').value) || 0;
       prop.deck         = parseFloat(document.getElementById('hypo-deck').value) || 0;
       prop.gst          = 0;
+    } else {
+      prop.appliances   = 0;
+      prop.blinds       = 0;
+      prop.landscaping  = 0;
+      prop.deck         = 0;
+      prop.gst          = 0;
     }
     prop.hasRental    = document.getElementById('hypo-rental-yes').classList.contains('selected');
     if (prop.hasRental) {
