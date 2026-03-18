@@ -3912,7 +3912,14 @@ div[id^="kf-rate-val-"] {
 // ═══════════════════════════════════════
 const SUPABASE_URL = 'https://rtzgksbpxoehmmvnolzi.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ0emdrc2JweG9laG1tdm5vbHppIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4MDg4ODksImV4cCI6MjA4OTM4NDg4OX0.Q_wX-z0bwgv9vB9CPyL8NAwl5JUyPOrs_6rpbAcV4us';
-const _supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const _supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: {
+    persistSession: true,
+    storageKey: 'homematch-auth',
+    autoRefreshToken: true,
+    detectSessionInUrl: true
+  }
+});
 let _currentUser = null;
 let _syncInProgress = false;
 let _pendingSync = false;
@@ -4094,8 +4101,15 @@ function debouncedSaveToSupabase() {
 
 let _authInitialized = false;
 _supabase.auth.onAuthStateChange(async (event, session) => {
-  if (event === 'INITIAL_SESSION') {
-    // Handled by DOMContentLoaded getSession() — skip to avoid double init
+  if (event === 'INITIAL_SESSION' && session && !_authInitialized) {
+    // Handle initial session (fires before DOMContentLoaded getSession)
+    _currentUser = session.user;
+    _authInitialized = true;
+    await initAppWithAuth();
+    return;
+  }
+  if (event === 'INITIAL_SESSION' && !session) {
+    // No session — auth screen stays visible
     return;
   }
   if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session) {
