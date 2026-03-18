@@ -4243,14 +4243,10 @@ async function initAppWithAuth() {
   // Show the app
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
 
-  // Check if this is a page refresh — restore previous screen
+  // Restore the last active screen (persists across refresh)
   const savedScreen = _store.get('homematch_activeScreen');
-  const navType = (performance && performance.getEntriesByType &&
-      performance.getEntriesByType('navigation')[0]?.type) ||
-      (performance && performance.navigation && performance.navigation.type === 1 ? 'reload' : 'navigate');
-  const isRefresh = navType === 'reload';
 
-  if (isRefresh && savedScreen && savedScreen !== 'welcome' && savedScreen !== 'auth') {
+  if (savedScreen && savedScreen !== 'welcome' && savedScreen !== 'auth') {
     try {
       restoreSettingsUI();
       if (savedScreen === 'results') {
