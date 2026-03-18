@@ -3939,14 +3939,7 @@ div[id^="kf-rate-val-"] {
 // ═══════════════════════════════════════
 const SUPABASE_URL = 'https://rtzgksbpxoehmmvnolzi.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ0emdrc2JweG9laG1tdm5vbHppIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4MDg4ODksImV4cCI6MjA4OTM4NDg4OX0.Q_wX-z0bwgv9vB9CPyL8NAwl5JUyPOrs_6rpbAcV4us';
-const _supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-  auth: {
-    persistSession: true,
-    storageKey: 'homematch-auth',
-    autoRefreshToken: true,
-    detectSessionInUrl: true
-  }
-});
+const _supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let _currentUser = null;
 let _syncInProgress = false;
 let _pendingSync = false;
@@ -8715,9 +8708,10 @@ window.addEventListener('DOMContentLoaded', async () => {
   // Always sync setup toggles on load
   syncSetupToggles();
 
-  // Explicitly check for Supabase session (don't rely on callback timing)
+  // Explicitly check for Supabase session
   try {
-    const { data: { session } } = await _supabase.auth.getSession();
+    const { data: { session }, error } = await _supabase.auth.getSession();
+    console.log('[Init] getSession:', session ? 'has session' : 'no session', error || '');
     if (session && !_authInitialized) {
       _currentUser = session.user;
       _authInitialized = true;
@@ -8725,12 +8719,13 @@ window.addEventListener('DOMContentLoaded', async () => {
       return;
     }
   } catch(e) {
-    console.warn('Session check failed:', e);
+    console.warn('[Init] Session check failed:', e);
   }
 
   // No authenticated session — check for returning guest with local data
   if (!_authInitialized && !_currentUser) {
     const hasLocalData = _store.get('homematch_state');
+    console.log('[Init] No session. Local data:', !!hasLocalData);
     if (hasLocalData) {
       continueAsGuest();
     }
