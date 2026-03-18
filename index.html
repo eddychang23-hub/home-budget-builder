@@ -4101,24 +4101,25 @@ function debouncedSaveToSupabase() {
 // ═══════════════════════════════════════
 
 let _authInitialized = false;
+let _domReady = false;
+let _pendingSession = null;
+
 _supabase.auth.onAuthStateChange(async (event, session) => {
   console.log('[Auth]', event, session ? 'has session' : 'no session');
-  if (event === 'INITIAL_SESSION' && session && !_authInitialized) {
-    _currentUser = session.user;
-    _authInitialized = true;
-    await initAppWithAuth();
-    return;
-  }
-  if (event === 'INITIAL_SESSION' && !session) {
-    // No session — auth screen stays visible
-    return;
-  }
-  if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session) {
+  if ((event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session) {
     _currentUser = session.user;
     if (!_authInitialized) {
-      _authInitialized = true;
-      await initAppWithAuth();
+      if (_domReady) {
+        _authInitialized = true;
+        await initAppWithAuth();
+      } else {
+        // DOM not ready — store session, DOMContentLoaded will init
+        _pendingSession = session;
+      }
     }
+  } else if (event === 'INITIAL_SESSION' && !session) {
+    // No session — auth screen stays visible
+    return;
   } else if (event === 'SIGNED_OUT') {
     _currentUser = null;
     _authInitialized = false;
@@ -8620,14 +8621,21 @@ function resumeSession() {
   } catch(e) {}
 }
 
-window.addEventListener('DOMContentLoaded', () => {
+window.addEventListener('DOMContentLoaded', async () => {
+  _domReady = true;
   // Seed the initial history entry
   if (!history.state?.screen) {
     history.replaceState({ screen: 'auth' }, '', '');
   }
   // Always sync setup toggles on load
   syncSetupToggles();
-  // Auth is handled entirely by onAuthStateChange — no getSession() needed here
+  // If onAuthStateChange fired before DOM was ready, init now
+  if (_pendingSession && !_authInitialized) {
+    _currentUser = _pendingSession.user;
+    _authInitialized = true;
+    _pendingSession = null;
+    await initAppWithAuth();
+  }
 });
 
 
