@@ -8718,19 +8718,24 @@ window.addEventListener('DOMContentLoaded', async () => {
   }
   // Always sync setup toggles on load
   syncSetupToggles();
-  // If onAuthStateChange fired before DOM was ready, init now
-  if (_pendingSession && !_authInitialized) {
-    _currentUser = _pendingSession.user;
-    _authInitialized = true;
-    _pendingSession = null;
-    await initAppWithAuth();
-    return;
+
+  // Explicitly check for Supabase session (don't rely on callback timing)
+  try {
+    const { data: { session } } = await _supabase.auth.getSession();
+    if (session && !_authInitialized) {
+      _currentUser = session.user;
+      _authInitialized = true;
+      await initAppWithAuth();
+      return;
+    }
+  } catch(e) {
+    console.warn('Session check failed:', e);
   }
+
   // No authenticated session — check for returning guest with local data
   if (!_authInitialized && !_currentUser) {
     const hasLocalData = _store.get('homematch_state');
     if (hasLocalData) {
-      // Auto-enter guest mode — go straight to app
       continueAsGuest();
     }
     // Otherwise auth screen stays visible (default)
