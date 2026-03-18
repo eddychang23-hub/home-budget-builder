@@ -4102,8 +4102,8 @@ function debouncedSaveToSupabase() {
 
 let _authInitialized = false;
 _supabase.auth.onAuthStateChange(async (event, session) => {
+  console.log('[Auth]', event, session ? 'has session' : 'no session');
   if (event === 'INITIAL_SESSION' && session && !_authInitialized) {
-    // Handle initial session (fires before DOMContentLoaded getSession)
     _currentUser = session.user;
     _authInitialized = true;
     await initAppWithAuth();
@@ -4158,7 +4158,35 @@ async function initAppWithAuth() {
 
   // Show the app
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  if (state.properties.length > 0) {
+
+  // Check if this is a page refresh — restore previous screen
+  const savedScreen = _store.get('homematch_activeScreen');
+  const navType = (performance && performance.getEntriesByType &&
+      performance.getEntriesByType('navigation')[0]?.type) ||
+      (performance && performance.navigation && performance.navigation.type === 1 ? 'reload' : 'navigate');
+  const isRefresh = navType === 'reload';
+
+  if (isRefresh && savedScreen && savedScreen !== 'welcome' && savedScreen !== 'auth') {
+    try {
+      restoreSettingsUI();
+      if (savedScreen === 'results') {
+        renderResults();
+        showScreen('results');
+      } else if (savedScreen === 'budget') {
+        renderResults();
+        openBudgetScreen();
+      } else if (savedScreen === 'properties') {
+        renderPropList();
+        showScreen('properties');
+      } else if (savedScreen === 'settings') {
+        openSetupScreen();
+      } else {
+        showScreen('welcome');
+      }
+    } catch(e) {
+      showScreen('welcome');
+    }
+  } else if (state.properties.length > 0) {
     // Has data — show welcome with resume option
     restoreSettingsUI();
     const resumeBtn = document.getElementById('resume-session-btn');
@@ -8592,52 +8620,14 @@ function resumeSession() {
   } catch(e) {}
 }
 
-window.addEventListener('DOMContentLoaded', async () => {
-  // Seed the initial history entry so the welcome screen is always step 0
+window.addEventListener('DOMContentLoaded', () => {
+  // Seed the initial history entry
   if (!history.state?.screen) {
     history.replaceState({ screen: 'auth' }, '', '');
   }
-
   // Always sync setup toggles on load
   syncSetupToggles();
-
-  // Check for existing Supabase session
-  try {
-    const { data: { session } } = await _supabase.auth.getSession();
-    if (session) {
-      _currentUser = session.user;
-      _authInitialized = true;
-      await initAppWithAuth();
-      // Handle refresh — restore to previous screen
-      const savedScreen = _store.get('homematch_activeScreen');
-      const navType = (performance && performance.getEntriesByType &&
-          performance.getEntriesByType('navigation')[0]?.type) ||
-          (performance && performance.navigation && performance.navigation.type === 1 ? 'reload' : 'navigate');
-      const isRefresh = navType === 'reload';
-      if (isRefresh && savedScreen && savedScreen !== 'welcome' && savedScreen !== 'auth') {
-        try {
-          restoreSettingsUI();
-          if (savedScreen === 'results') {
-            renderResults();
-            showScreen('results');
-          } else if (savedScreen === 'budget') {
-            renderResults();
-            openBudgetScreen();
-          } else if (savedScreen === 'properties') {
-            renderPropList();
-            showScreen('properties');
-          } else if (savedScreen === 'settings') {
-            openSetupScreen();
-          }
-        } catch(e) {
-          showScreen('welcome');
-        }
-      }
-    }
-    // If no session, auth screen is already showing (it's the default active screen)
-  } catch(e) {
-    console.warn('Session check failed:', e);
-  }
+  // Auth is handled entirely by onAuthStateChange — no getSession() needed here
 });
 
 
