@@ -8708,28 +8708,47 @@ window.addEventListener('DOMContentLoaded', async () => {
   // Always sync setup toggles on load
   syncSetupToggles();
 
-  // Explicitly check for Supabase session
-  try {
-    const { data: { session }, error } = await _supabase.auth.getSession();
-    console.log('[Init] getSession:', session ? 'has session' : 'no session', error || '');
-    if (session && !_authInitialized) {
-      _currentUser = session.user;
+  // If onAuthStateChange already fired before DOM was ready, process it now
+  if (_pendingSession && !_authInitialized) {
+    console.log('[Init] Processing pending session');
+    _currentUser = _pendingSession.user;
+    _authInitialized = true;
+    _pendingSession = null;
+    await initAppWithAuth();
+    return;
+  }
+
+  // Auth callback may not have fired yet — wait briefly then decide
+  if (!_authInitialized && !_currentUser) {
+    // Give Supabase up to 800ms to fire the auth callback
+    await new Promise(resolve => {
+      const check = setInterval(() => {
+        if (_authInitialized || _pendingSession) {
+          clearInterval(check);
+          resolve();
+        }
+      }, 50);
+      setTimeout(() => { clearInterval(check); resolve(); }, 800);
+    });
+
+    // Check again after waiting
+    if (_pendingSession && !_authInitialized) {
+      console.log('[Init] Processing late pending session');
+      _currentUser = _pendingSession.user;
       _authInitialized = true;
+      _pendingSession = null;
       await initAppWithAuth();
       return;
     }
-  } catch(e) {
-    console.warn('[Init] Session check failed:', e);
-  }
 
-  // No authenticated session — check for returning guest with local data
-  if (!_authInitialized && !_currentUser) {
-    const hasLocalData = _store.get('homematch_state');
-    console.log('[Init] No session. Local data:', !!hasLocalData);
-    if (hasLocalData) {
-      continueAsGuest();
+    // Definitely no session — check for returning guest
+    if (!_authInitialized) {
+      const hasLocalData = _store.get('homematch_state');
+      console.log('[Init] No session. Local data:', !!hasLocalData);
+      if (hasLocalData) {
+        continueAsGuest();
+      }
     }
-    // Otherwise auth screen stays visible (default)
   }
 });
 
