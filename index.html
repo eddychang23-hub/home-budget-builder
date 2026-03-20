@@ -4154,11 +4154,12 @@ async function saveToSupabase() {
 async function loadFromSupabase() {
   if (!_currentUser) return null;
   try {
-    const { data, error } = await _supabase
-      .from('user_data')
-      .select('state, updated_at')
-      .eq('user_id', _currentUser.id)
-      .single();
+    // Timeout after 5 seconds to prevent hanging
+    const result = await Promise.race([
+      _supabase.from('user_data').select('state, updated_at').eq('user_id', _currentUser.id).single(),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Cloud load timeout')), 5000))
+    ]);
+    const { data, error } = result;
     if (error && error.code !== 'PGRST116') throw error; // PGRST116 = no rows
     return data;
   } catch (e) {
@@ -4190,14 +4191,24 @@ _supabase.auth.onAuthStateChange(async (event, session) => {
     if (!_authInitialized) {
       if (_domReady) {
         _authInitialized = true;
-        await initAppWithAuth();
+        try {
+          await initAppWithAuth();
+        } catch(e) {
+          console.warn('[Auth] initAppWithAuth failed:', e);
+          // Fallback: load from localStorage and show welcome
+          _hideLoadingScreen();
+          const saved = _store.get('homematch_state');
+          if (saved) { try { state = { ...state, ...JSON.parse(saved) }; } catch(x) {} }
+          showScreen('welcome');
+        }
       } else {
-        // DOM not ready — store session, DOMContentLoaded will init
         _pendingSession = session;
       }
     }
   } else if (event === 'INITIAL_SESSION' && !session) {
-    // No session — auth screen stays visible
+    // No session — show auth screen
+    _hideLoadingScreen();
+    document.getElementById('screen-auth').classList.add('active');
     return;
   } else if (event === 'SIGNED_OUT') {
     _currentUser = null;
