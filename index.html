@@ -5560,9 +5560,9 @@ function calcDownPayment(price, settings) {
 function calcCMHC(principal, downPct) {
   if (downPct >= 20) return 0;
   if (downPct < 5) return 0; // shouldn't happen
-  if (downPct < 10) return principal * 0.031;
-  if (downPct < 15) return principal * 0.028;
-  return principal * 0.024;
+  if (downPct < 10) return principal * 0.04;   // 5–9.99% down → 4.00%
+  if (downPct < 15) return principal * 0.031;  // 10–14.99% down → 3.10%
+  return principal * 0.028;                     // 15–19.99% down → 2.80%
 }
 
 function calcMortgage(principal, annualRate, years) {
