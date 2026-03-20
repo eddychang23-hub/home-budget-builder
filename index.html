@@ -2607,7 +2607,13 @@ div[id^="kf-rate-val-"] {
 <!-- ══════════════════════════════════════
      SCREEN 0: AUTH (LOGIN / SIGNUP)
 ══════════════════════════════════════ -->
-<div id="screen-auth" class="screen active">
+<div id="screen-loading" style="display:flex; min-height:100vh; width:100%; background:var(--navy); align-items:center; justify-content:center;">
+  <div style="text-align:center;">
+    <div class="welcome-logo" style="font-size:36px;">Home <span>Budget Builder</span></div>
+    <div style="margin-top:16px;"><div class="spinner show" style="margin:0 auto; border-top-color:var(--gold);"></div></div>
+  </div>
+</div>
+<div id="screen-auth" class="screen">
   <div class="auth-inner">
     <div class="welcome-logo">Home <span>Budget Builder</span></div>
     <div class="welcome-tagline">Your property budget &amp; comparison tool</div>
@@ -4320,7 +4326,12 @@ let _pendingDefault = { type: null, propIdx: null, value: null, dpType: null, dp
 // ═══════════════════════════════════════
 
 // Internal — switches screen without touching browser history
+function _hideLoadingScreen() {
+  const el = document.getElementById('screen-loading');
+  if (el) el.style.display = 'none';
+}
 function _activateScreen(id) {
+  _hideLoadingScreen();
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById('screen-' + id).classList.add('active');
   window.scrollTo(0, 0);
@@ -8747,6 +8758,10 @@ window.addEventListener('DOMContentLoaded', async () => {
       console.log('[Init] No session. Local data:', !!hasLocalData);
       if (hasLocalData) {
         continueAsGuest();
+      } else {
+        // Show auth screen (first-time visitor)
+        _hideLoadingScreen();
+        document.getElementById('screen-auth').classList.add('active');
       }
     }
   }
