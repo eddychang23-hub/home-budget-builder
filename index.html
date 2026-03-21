@@ -6578,7 +6578,8 @@ function kfConfirmEdit(idx, type) {
     }
   } else {
     const raw = parseFloat(input.value) || 0;
-    if (raw > 0 && raw < 20) {
+    const currentRate = propEffectiveSettings(state.properties[idx] || {}).interestRate;
+    if (raw > 0 && raw < 20 && raw !== currentRate) {
       triggerDefaultModal('rate', idx, raw, null, null, null);
     }
   }
