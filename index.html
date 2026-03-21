@@ -8326,14 +8326,14 @@ document.addEventListener('click', e => {
   if (!e.target.closest('.results-menu-wrap')) closeResultsMenu();  if (!e.target.closest('#otherincome-row')) otherIncomeHidePreview();
   if (!e.target.closest('.prop-item')) document.querySelectorAll('.prop-item.active').forEach(el => el.classList.remove('active'));
 
-  // Cancel any open kf (top grid) edits when clicking outside them
+  // Confirm any open kf (top grid) edits when clicking outside them
   if (!e.target.closest('.result-key-fact.editing') &&
       !e.target.closest('.btn-confirm') &&
       !e.target.closest('.btn-cancel')) {
     document.querySelectorAll('.result-key-fact.editing').forEach(cell => {
       const isPrice = cell.id.includes('price');
       const idx = parseInt(cell.id.split('-').pop());
-      if (!isNaN(idx)) kfCancelEdit(idx, isPrice ? 'price' : 'rate');
+      if (!isNaN(idx)) kfConfirmEdit(idx, isPrice ? 'price' : 'rate');
     });
   }
 
