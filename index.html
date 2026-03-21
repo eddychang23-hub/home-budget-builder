@@ -6384,6 +6384,7 @@ function dsUniConfirm(btn) {
   if (!row) return;
   const input = row.querySelector('.breakdown-row-input');
   const val = parseFloat((input?.value || '').replace(/[^0-9.]/g, '')) || 0;
+  const field   = row.dataset.dsField;
   const type    = row.dataset.dsType;
   const propIdx = row.dataset.dsProp !== undefined ? parseInt(row.dataset.dsProp) : undefined;
 
@@ -6401,10 +6402,10 @@ function dsUniConfirm(btn) {
   row.classList.remove('editing');
   if (input) input.blur();
 
-  // Delegate to dsConfirmEdit logic
+  // Apply edit to source data (top card inputs + state)
   _dsApplyEdit(field, type, val, propIdx);
 
-  // Re-render DS to keep subtotals in sync
+  // Re-render all detail cards so changes sync across properties
   updateBudgetCalc();
 }
 
