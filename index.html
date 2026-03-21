@@ -6527,9 +6527,19 @@ function kfStartEdit(cell, idx, type) {
       const price = prop ? (prop.budgetPrice || prop.price || 0) : 0;
       input.value = Math.round(price).toLocaleString();
     } else {
-      input.value = state.settings.interestRate;
+      input.value = propEffectiveSettings(state.properties[idx] || {}).interestRate;
     }
     input.focus(); setTimeout(() => input.select(), 30);
+    // Auto-confirm on blur (mobile keyboard dismiss)
+    input.addEventListener('blur', function onBlur() {
+      input.removeEventListener('blur', onBlur);
+      setTimeout(() => {
+        if (!cell.classList.contains('editing')) return;
+        const focused = document.activeElement;
+        if (focused && cell.contains(focused)) return;
+        kfConfirmEdit(idx, type);
+      }, 80);
+    });
   }
 }
 
@@ -9024,6 +9034,18 @@ function cardTaxOpenEdit(idx) {
   const currentMonthly = prop?.taxAmt || 0;
   if (annualInp)  { annualInp.value  = ''; annualInp.placeholder  = currentMonthly > 0 ? Math.round(currentMonthly * 12).toLocaleString() : '0'; }
   if (monthlyInp) { monthlyInp.value = ''; monthlyInp.placeholder = currentMonthly > 0 ? Math.round(currentMonthly).toLocaleString() : '0'; }
+
+  // Auto-confirm on blur (mobile keyboard dismiss)
+  function cardTaxBlurHandler() {
+    setTimeout(() => {
+      if (!row.classList.contains('editing')) return;
+      const focused = document.activeElement;
+      if (focused && row.contains(focused)) return;
+      cardTaxConfirm(idx);
+    }, 80);
+  }
+  if (annualInp) annualInp.addEventListener('blur', cardTaxBlurHandler);
+  if (monthlyInp) monthlyInp.addEventListener('blur', cardTaxBlurHandler);
 
   setTimeout(() => { if (annualInp) annualInp.focus(); }, 30);
 }
