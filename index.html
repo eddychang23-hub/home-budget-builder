@@ -5058,7 +5058,7 @@ function taxConfirmUseEstimator() {
 function taxOpenEdit() {
   const row = document.getElementById('hypo-tax-row');
   if (!row || row.classList.contains('editing')) return;
-  document.querySelectorAll('.ci-uni-row.editing').forEach(r => ciUniCancel(r.querySelector('.btn-cancel')));
+  document.querySelectorAll('.ci-uni-row.editing').forEach(r => ciUniConfirm(r.querySelector('.btn-confirm')));
   row.classList.remove('left-highlight');
   row.classList.add('editing');
 
@@ -5783,7 +5783,7 @@ function customExpenseRowClick(id, e) {
   document.querySelectorAll('.bform-custom-row.editing').forEach(r => {
     if (r !== row) {
       const otherId = r.id.replace('row-', '');
-      customExpenseCancel(otherId);
+      customExpenseConfirm(otherId);
     }
   });
   row.classList.add('editing');
@@ -6517,7 +6517,7 @@ function kfStartEdit(cell, idx, type) {
   document.querySelectorAll('.result-key-fact.editing').forEach(c => {
     const t = c.id.replace(/^kf-(price|rate)-\d+$/, '$1').replace(/^kf-/, '').split('-')[0];
     const i = parseInt(c.id.split('-').pop());
-    kfCancelEdit(i, c.id.includes('price') ? 'price' : 'rate');
+    kfConfirmEdit(i, c.id.includes('price') ? 'price' : 'rate');
   });
   cell.classList.add('editing');
   const input = document.getElementById('kf-' + type + '-input-' + idx);
@@ -8811,14 +8811,14 @@ function ciUniRowClick(row, e) {
   if (row.classList.contains('editing')) return;
   clearCiUniHighlight();
 
-  // Close any other open ci-uni rows AND the tax row
+  // Confirm any other open ci-uni rows AND the tax row
   document.querySelectorAll('.ci-uni-row.editing').forEach(r => {
-    if (r !== row) ciUniCancel(r.querySelector('.btn-cancel'));
+    if (r !== row) ciUniConfirm(r.querySelector('.btn-confirm'));
   });
-  // Close tax row if open, clear its highlight too
+  // Confirm tax row if open, clear its highlight too
   const taxRow = document.getElementById('hypo-tax-row');
   if (taxRow) {
-    if (taxRow.classList.contains('editing')) taxRowCancel();
+    if (taxRow.classList.contains('editing')) taxRowConfirm();
     taxRow.classList.remove('left-highlight');
   }
 
@@ -8896,14 +8896,14 @@ function uniRowClick(row, e) {
   if (row.classList.contains('editing')) return;
   clearUniRowHighlight();
 
-  // Close any other open uni rows
+  // Confirm any other open uni rows
   document.querySelectorAll('.uni-row.editing').forEach(r => {
-    if (r !== row) uniRowCancel(r.querySelector('.btn-cancel'));
+    if (r !== row) uniRowConfirm(r.querySelector('.btn-confirm'));
   });
-  // Close any open card-tax-rows too
+  // Confirm any open card-tax-rows too
   document.querySelectorAll('.card-tax-row.editing').forEach(r => {
     const i = parseInt(r.dataset.prop);
-    if (!isNaN(i)) cardTaxCancel(i);
+    if (!isNaN(i)) cardTaxConfirm(i);
   });
 
   row.classList.add('editing');
@@ -9015,13 +9015,13 @@ function cardTaxBadgeClick(idx) {
 function cardTaxOpenEdit(idx) {
   const row = document.getElementById('card-tax-row-' + idx);
   if (!row || row.classList.contains('editing')) return;
-  // Close any other open card tax rows
+  // Confirm any other open card tax rows
   document.querySelectorAll('.card-tax-row.editing').forEach(r => {
     const i = parseInt(r.dataset.prop);
-    if (i !== idx) cardTaxCancel(i);
+    if (i !== idx) cardTaxConfirm(i);
   });
-  document.querySelectorAll('.uni-row.editing').forEach(r => uniRowCancel(r.querySelector('.btn-cancel')));
-  document.querySelectorAll('.ci-uni-row.editing').forEach(r => ciUniCancel(r.querySelector('.btn-cancel')));
+  document.querySelectorAll('.uni-row.editing').forEach(r => uniRowConfirm(r.querySelector('.btn-confirm')));
+  document.querySelectorAll('.ci-uni-row.editing').forEach(r => ciUniConfirm(r.querySelector('.btn-confirm')));
   row.classList.remove('left-highlight');
   row.classList.add('editing');
 
