@@ -927,7 +927,7 @@ input[type="number"]:focus, input[type="text"]:focus, select:focus {
 .prop-result-name.editable { cursor: pointer; }
 .prop-result-name.editable:hover .name-pencil { opacity: 1; }
 .name-pencil { font-size: 12px; opacity: 0; transition: opacity 0.15s; margin-left: 4px; color: rgba(255,255,255,0.6); }
-.name-edit-wrap { display: none; align-items: center; gap: 6px; margin-top: 4px; }
+.name-edit-wrap { display: none; align-items: center; gap: 6px; margin-top: 4px; width: 65%; min-width: 0; }
 .prop-result-name.editing .name-display { display: none; }
 .prop-result-name.editing .name-edit-wrap { display: flex; }
 .name-input-box {
@@ -938,14 +938,17 @@ input[type="number"]:focus, input[type="text"]:focus, select:focus {
   padding: 4px 8px;
   background: rgba(255,255,255,0.12);
   box-shadow: 0 0 0 3px rgba(201,168,76,0.2);
+  flex: 1;
+  min-width: 0;
 }
 .name-input {
   all: unset;
-  font-family: 'Cormorant Garamond', serif;
-  font-size: 20px;
-  font-weight: 700;
+  font-family: 'Outfit', sans-serif;
+  font-size: 16px;
+  font-weight: 600;
   color: #fff;
-  width: 160px;
+  width: 100%;
+  min-width: 0;
 }
 
 /* Key facts bar — price, rate, mortgage */
