@@ -2889,6 +2889,17 @@ div[id^="kf-rate-val-"] {
         </div>
       </div>
 
+      <!-- Shared costs -->
+      <div class="q-block">
+        <div class="q-label">Shared costs across properties</div>
+        <div class="q-hint">When you change utilities, insurance, lawyer fees, moving expenses, or other shared costs on one property, should it update the others?</div>
+        <div class="setup-toggle-wrap">
+          <button class="setup-toggle-btn active" id="setup-costs-ask" onclick="setAutoApply('costs', false)">Always ask</button>
+          <button class="setup-toggle-btn" id="setup-costs-all" onclick="setAutoApply('costs', 'all')">Apply to all</button>
+          <button class="setup-toggle-btn" id="setup-costs-one" onclick="setAutoApply('costs', 'one')">Property only</button>
+        </div>
+      </div>
+
     </div>
     <button class="btn btn-fwd btn-lg" id="btn-next" onclick="goNext()" style="width:100%; margin-top:12px; justify-content:center;">
       Continue →
@@ -4307,6 +4318,7 @@ const DEFAULT_SETTINGS = {
   autoApplyRate: null,
   autoApplyDP: null,
   autoApplyAmort: null,
+  autoApplyCosts: null,
 };
 
 let state = {
@@ -6444,10 +6456,20 @@ function _dsApplyEdit(field, type, val, propIdx) {
         reno: 'Repairs / Renovations'
       };
       if (state.properties.length > 1 && field in sharedFieldLabels && val !== oldVal) {
-        document.getElementById('apply-all-desc').textContent =
-          `Change ${sharedFieldLabels[field]} to $${Math.round(val).toLocaleString()} for all properties?`;
-        state._applyAllData = { singleField: true, key: field, specKey: null, newVal: val, editIdx: propIdx };
-        openModal('modal-apply-all');
+        const autoApply = state.settings.autoApplyCosts;
+        if (autoApply === 'all') {
+          // Auto-apply without asking
+          state.properties.forEach((p, i) => { if (i !== propIdx) p[field] = val; });
+          state.properties.forEach((_, i) => recalcCardTotals(i));
+          markUnsaved();
+          showToast(`${sharedFieldLabels[field]} updated for all properties.`);
+        } else if (autoApply !== 'one') {
+          // Ask
+          document.getElementById('apply-all-desc').textContent =
+            `Change ${sharedFieldLabels[field]} to $${Math.round(val).toLocaleString()} for all properties?`;
+          state._applyAllData = { singleField: true, key: field, specKey: null, newVal: val, editIdx: propIdx };
+          openModal('modal-apply-all');
+        }
       }
     }
   }
@@ -6596,6 +6618,7 @@ function setAutoApply(type, val) {
   if (type === 'rate')  state.settings.autoApplyRate  = val;
   else if (type === 'dp') state.settings.autoApplyDP  = val;
   else if (type === 'amort') state.settings.autoApplyAmort = val;
+  else if (type === 'costs') state.settings.autoApplyCosts = val;
   syncSetupToggles();
   markUnsaved();
 }
@@ -6620,6 +6643,11 @@ function syncSetupToggles() {
   document.getElementById('setup-amort-ask')?.classList.toggle('active', !amortVal);
   document.getElementById('setup-amort-all')?.classList.toggle('active', amortVal === 'all');
   document.getElementById('setup-amort-one')?.classList.toggle('active', amortVal === 'one');
+  // Shared costs
+  const costsVal = state.settings.autoApplyCosts;
+  document.getElementById('setup-costs-ask')?.classList.toggle('active', !costsVal);
+  document.getElementById('setup-costs-all')?.classList.toggle('active', costsVal === 'all');
+  document.getElementById('setup-costs-one')?.classList.toggle('active', costsVal === 'one');
 }
 
 // Called when user edits rate or DP on a card — decides whether to show modal or auto-apply
@@ -8955,9 +8983,18 @@ function uniRowConfirm(btn) {
     reno: 'Repairs / Renovations'
   };
   if (state.properties.length > 1 && field in sharedFieldLabels && val !== oldVal) {
-    document.getElementById('apply-all-desc').textContent =
-      `Change ${sharedFieldLabels[field]} to $${Math.round(val).toLocaleString()} for all properties?`;
-    state._applyAllData = { singleField: true, key: field, specKey: null, newVal: val, editIdx: propIdx };
+    const autoApply = state.settings.autoApplyCosts;
+    if (autoApply === 'all') {
+      state.properties.forEach((p, i) => { if (i !== propIdx) p[field] = val; });
+      state.properties.forEach((_, i) => recalcCardTotals(i));
+      markUnsaved();
+      showToast(`${sharedFieldLabels[field]} updated for all properties.`);
+    } else if (autoApply !== 'one') {
+      document.getElementById('apply-all-desc').textContent =
+        `Change ${sharedFieldLabels[field]} to $${Math.round(val).toLocaleString()} for all properties?`;
+      state._applyAllData = { singleField: true, key: field, specKey: null, newVal: val, editIdx: propIdx };
+      openModal('modal-apply-all');
+    }
   }
 }
 
