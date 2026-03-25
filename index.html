@@ -929,9 +929,8 @@ input[type="number"]:focus, input[type="text"]:focus, select:focus {
 .name-pencil { font-size: 12px; opacity: 0; transition: opacity 0.15s; margin-left: 4px; color: rgba(255,255,255,0.6); }
 .name-edit-wrap { display: none; align-items: center; gap: 6px; margin-top: 4px; min-width: 0; }
 .prop-result-name.editing .name-display { display: none; }
-.prop-result-name.editing .name-edit-wrap { display: flex; }
-.prop-result-name.editing { flex: 1 1 100%; min-width: 0; }
-.prop-result-name.editing + div { display: none; }
+.prop-result-name.editing .name-edit-wrap { display: flex; width: 100%; }
+.prop-result-name.editing { min-width: 0; }
 .name-input-box {
   display: flex;
   align-items: center;
@@ -7115,8 +7114,19 @@ function kfStartNameEdit(idx) {
   const el = document.getElementById('card-name-' + idx);
   if (!el || el.classList.contains('editing')) return;
   el.classList.add('editing');
+  // Hide the Add/Copy/Edit buttons to give input more room
+  const header = el.closest('.prop-result-header');
+  const btnGroup = header?.querySelector(':scope > div:last-child');
+  if (btnGroup) btnGroup.style.display = 'none';
   const input = document.getElementById('card-name-input-' + idx);
   if (input) { input.focus(); setTimeout(() => input.select(), 30); }
+}
+function _restoreNameButtons(idx) {
+  const el = document.getElementById('card-name-' + idx);
+  if (!el) return;
+  const header = el.closest('.prop-result-header');
+  const btnGroup = header?.querySelector(':scope > div:last-child');
+  if (btnGroup) btnGroup.style.display = '';
 }
 
 function kfConfirmName(idx) {
@@ -7127,17 +7137,18 @@ function kfConfirmName(idx) {
   if (val) {
     const prop = state.properties[idx];
     if (prop) prop.nickname = val;
-    // Update display
     const display = el.querySelector('.name-display');
     if (display) display.innerHTML = val + '<span class="name-pencil">✏️</span>';
     markUnsaved();
   }
   el.classList.remove('editing');
+  _restoreNameButtons(idx);
 }
 
 function kfCancelName(idx) {
   const el = document.getElementById('card-name-' + idx);
   if (el) el.classList.remove('editing');
+  _restoreNameButtons(idx);
 }
 
 // ═══════════════════════════════════════
