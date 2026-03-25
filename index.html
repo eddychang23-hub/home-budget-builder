@@ -5508,8 +5508,42 @@ function saveProperty() {
   closeModal('modal-add-prop');
   renderPropList();
   markUnsaved();
+
+  // Check for shared cost changes — prompt to apply to all
+  if (isEdit && state.properties.length > 1 && state._prevPropSnapshot) {
+    const prev = state._prevPropSnapshot;
+    const sharedFields = {
+      utilAmt: 'Utilities', insureAmt: 'Home Insurance', internetAmt: 'Internet / Cable',
+      inspect: 'Inspection & Appraisal', legal: 'Lawyer Fees', moving: 'Moving Expenses',
+      reno: 'Repairs / Renovations'
+    };
+    const changed = [];
+    for (const [key, label] of Object.entries(sharedFields)) {
+      const oldVal = prev[key] || 0;
+      const newVal = prop[key] || 0;
+      if (oldVal !== newVal) changed.push({ key, label, newVal });
+    }
+    if (changed.length > 0) {
+      const autoApply = state.settings.autoApplyCosts;
+      if (autoApply === 'all') {
+        changed.forEach(({ key, newVal }) => {
+          state.properties.forEach((p, i) => { if (i !== state.editingPropIdx) p[key] = newVal; });
+        });
+        state.properties.forEach((_, i) => recalcCardTotals(i));
+        markUnsaved();
+        showToast('Shared costs updated for all properties.');
+      } else if (autoApply !== 'one') {
+        const desc = changed.length === 1
+          ? `Change ${changed[0].label} to $${Math.round(changed[0].newVal).toLocaleString()} for all properties?`
+          : `Apply ${changed.length} cost changes to all properties?`;
+        document.getElementById('apply-all-desc').textContent = desc;
+        state._applyAllData = { singleField: false, prop, changed, specMap: {}, editIdx: state.editingPropIdx };
+        openModal('modal-apply-all');
+      }
+    }
+  }
+
   delete state._prevPropSnapshot;
-  delete state._applyAllData;
 
   // If opened from results page, re-render and stay there
   if (state.editFromResults) {
