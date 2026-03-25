@@ -5581,46 +5581,20 @@ function saveProperty() {
   renderPropList();
   markUnsaved();
 
-  // Check for shared cost changes — prompt to apply to all
-  if (isEdit && state.properties.length > 1 && state._prevPropSnapshot) {
-    const prev = state._prevPropSnapshot;
+  // Auto-apply shared costs set to 'all' (safety net for Save button path)
+  if (state.properties.length > 1) {
     const sharedFields = {
       utilAmt: 'Utilities', insureAmt: 'Home Insurance', internetAmt: 'Internet / Cable',
       inspect: 'Inspection & Appraisal', legal: 'Lawyer Fees', moving: 'Moving Expenses',
       reno: 'Repairs / Renovations'
     };
-    const changed = [];
+    const prev = isEdit && state._prevPropSnapshot ? state._prevPropSnapshot : null;
+    const editIdx = isEdit ? state.editingPropIdx : state.properties.length - 1;
     for (const [key, label] of Object.entries(sharedFields)) {
-      const oldVal = prev[key] || 0;
+      const oldVal = prev ? (prev[key] || 0) : -1;
       const newVal = prop[key] || 0;
-      if (oldVal !== newVal) changed.push({ key, label, newVal });
-    }
-    if (changed.length > 0) {
-      // Auto-apply fields set to 'all', filter out 'one' fields, ask for the rest
-      const autoAll = changed.filter(c => getCostAutoApply(c.key) === 'all');
-      const askFields = changed.filter(c => { const v = getCostAutoApply(c.key); return v !== 'all' && v !== 'one'; });
-
-      // Silently apply 'all' fields
-      if (autoAll.length > 0) {
-        autoAll.forEach(({ key, newVal }) => {
-          state.properties.forEach((p, i) => { if (i !== state.editingPropIdx) p[key] = newVal; });
-        });
-        state.properties.forEach((_, i) => recalcCardTotals(i));
-        markUnsaved();
-        showToast('Shared costs updated for all properties.');
-      }
-
-      // Prompt for 'ask' fields
-      if (askFields.length > 0) {
-        const desc = askFields.length === 1
-          ? `Change ${askFields[0].label} to $${Math.round(askFields[0].newVal).toLocaleString()} for all properties?`
-          : `Apply ${askFields.length} cost changes to all properties?`;
-        document.getElementById('apply-all-desc').textContent = desc;
-        state._applyAllData = { singleField: false, prop, changed: askFields, specMap: {}, editIdx: state.editingPropIdx };
-        document.getElementById('apply-all-choice').style.display = '';
-        document.getElementById('apply-all-confirm').style.display = 'none';
-        const _cb = document.getElementById('apply-all-dont-ask'); if (_cb) _cb.checked = false;
-        openModal('modal-apply-all');
+      if (oldVal !== newVal && getCostAutoApply(key) === 'all') {
+        state.properties.forEach((p, i) => { if (i !== editIdx) p[key] = newVal; });
       }
     }
   }
@@ -6833,6 +6807,31 @@ function confirmMakeDefault(applyToAll) {
 
   // Apply the change
   let dpAnyAdjusted = false;
+  if (type === 'cost') {
+    const { costKey, costLabel } = _pendingDefault;
+    if (applyToAll) {
+      state.properties.forEach((p, i) => { if (i !== propIdx) p[costKey] = value; });
+      state.properties.forEach((_, i) => recalcCardTotals(i));
+      markUnsaved();
+      showToast(costLabel + ' updated for all properties.');
+    }
+    if (dontAsk) {
+      if (!state.settings.costAutoApply) state.settings.costAutoApply = {};
+      state.settings.costAutoApply[costKey] = applyToAll ? 'all' : 'one';
+      syncSetupToggles();
+      markUnsaved();
+      const msg = applyToAll
+        ? `Future ${costLabel} changes will automatically apply to all properties. You can change this on the Set Up page.`
+        : `Future ${costLabel} changes will only apply to the property you're editing. You can change this on the Set Up page.`;
+      document.getElementById('modal-make-default-confirm-msg').textContent = msg;
+      document.getElementById('modal-make-default-choice').style.display = 'none';
+      document.getElementById('modal-make-default-confirm').style.display = '';
+    } else {
+      closeModal('modal-make-default');
+    }
+    _pendingDefault = { type: null, propIdx: null, value: null, dpType: null, dpAmt: null, dpPct: null };
+    return;
+  }
   if (type === 'rate')       applyRateChange(propIdx, value, applyToAll);
   else if (type === 'amort') applyAmortChange(propIdx, value, applyToAll);
   else                       dpAnyAdjusted = applyDPChange(propIdx, dpType, dpAmt, dpPct, applyToAll);
@@ -9048,6 +9047,18 @@ function ciUniRowClick(row, e) {
   }
 }
 
+// Map modal input IDs to shared cost field keys
+const MODAL_SHARED_FIELDS = {
+  'hypo-util-amt-monthly': { key: 'utilAmt', label: 'Utilities' },
+  'hypo-util-amt': { key: 'utilAmt', label: 'Utilities' },
+  'hypo-insure-amt': { key: 'insureAmt', label: 'Home Insurance' },
+  'hypo-internet-amt': { key: 'internetAmt', label: 'Internet / Cable' },
+  'hypo-inspect': { key: 'inspect', label: 'Inspection & Appraisal' },
+  'hypo-legal': { key: 'legal', label: 'Lawyer Fees' },
+  'hypo-moving': { key: 'moving', label: 'Moving Expenses' },
+  'hypo-reno': { key: 'reno', label: 'Repairs / Renovations' },
+};
+
 function ciUniConfirm(btn) {
   const row = btn.closest('.ci-uni-row');
   if (!row) return;
@@ -9061,6 +9072,41 @@ function ciUniConfirm(btn) {
   row.classList.remove('editing');
   input.value = val > 0 ? Math.round(val).toLocaleString() : '';
   input.blur();
+
+  // Check if this is a shared cost field inside the Add/Edit modal
+  if (input && row.closest('#modal-add-prop') && state.properties.length > 0) {
+    const fieldInfo = MODAL_SHARED_FIELDS[input.id];
+    if (fieldInfo) {
+      const { key, label } = fieldInfo;
+      const isEdit = state.editingPropIdx !== null;
+      const oldVal = isEdit && state._prevPropSnapshot ? (state._prevPropSnapshot[key] || 0) : null;
+      // For edits: only prompt if value changed. For adds: always prompt if there are other properties.
+      const shouldPrompt = isEdit ? (oldVal !== null && val !== oldVal) : true;
+      if (shouldPrompt) {
+        const autoApply = getCostAutoApply(key);
+        if (autoApply === 'all') {
+          // Silently apply to all other properties
+          const editIdx = isEdit ? state.editingPropIdx : state.properties.length - 1;
+          state.properties.forEach((p, i) => { if (i !== editIdx) p[key] = val; });
+          state.properties.forEach((_, i) => recalcCardTotals(i));
+          markUnsaved();
+          showToast(label + ' updated for all properties.');
+        } else if (autoApply !== 'one') {
+          // Show the apply-to-all modal
+          const editIdx = isEdit ? state.editingPropIdx : state.properties.length - 1;
+          state._applyAllData = { singleField: true, key, specKey: null, newVal: val, editIdx };
+          document.getElementById('modal-make-default-title').textContent = 'Apply to All Properties?';
+          document.getElementById('modal-make-default-desc').textContent =
+            'Change ' + label + ' to $' + Math.round(val).toLocaleString() + ' for all properties?';
+          document.getElementById('modal-make-default-choice').style.display = '';
+          document.getElementById('modal-make-default-confirm').style.display = 'none';
+          document.getElementById('modal-dont-ask-again').checked = false;
+          _pendingDefault = { type: 'cost', propIdx: editIdx, value: val, costKey: key, costLabel: label };
+          openModal('modal-make-default');
+        }
+      }
+    }
+  }
 }
 
 function ciUniCancel(btn) {
