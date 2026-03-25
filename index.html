@@ -8519,11 +8519,16 @@ function scrollCompareRow(dir) {
   }
 }
 
-// Re-render on resize to fix carousel layout
+// Re-render on resize to fix carousel layout — only on WIDTH changes
+// (Android address bar show/hide changes height only, which was resetting carousel to card 0)
 let _resizeTimer;
+let _lastResizeWidth = window.innerWidth;
 window.addEventListener('resize', () => {
   clearTimeout(_resizeTimer);
   _resizeTimer = setTimeout(() => {
+    const newWidth = window.innerWidth;
+    if (newWidth === _lastResizeWidth) return; // height-only change (address bar) — skip
+    _lastResizeWidth = newWidth;
     const activeScreen = document.querySelector('.screen.active')?.id;
     if (activeScreen === 'screen-results') renderResults();
     if (activeScreen === 'screen-budget') updateBudgetCalc();
