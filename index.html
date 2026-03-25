@@ -3909,15 +3909,25 @@ div[id^="kf-rate-val-"] {
 </div>
 
 <div class="modal-overlay" id="modal-apply-all">
-  <div class="modal" style="max-width:370px;">
-    <div class="modal-header" style="padding: 20px 20px 16px; background: var(--navy); border-bottom: none; justify-content: center;">
-      <div class="modal-title" id="apply-all-title" style="font-size:18px; color: var(--white); text-align: center;">Apply to All Properties?</div>
+  <div class="modal" style="max-width:360px;">
+    <div class="modal-header" style="padding:20px 20px 16px; background:var(--navy); border-bottom:none; justify-content:center;">
+      <div class="modal-title" id="apply-all-title" style="font-size:18px; color:var(--white); text-align:center;">Apply to All Properties?</div>
     </div>
-    <div class="modal-body" style="padding: 20px 20px 25px;">
-      <p id="apply-all-desc" style="font-size:14px; color:var(--text-mid); margin-bottom:10px; line-height:1.5; text-align:center;"></p>
-      <div style="display:flex; gap:10px;">
-        <button class="btn btn-ghost" style="flex:1; font-size:13px; background:transparent; border:1.5px solid var(--border); color:var(--text-mid);" onclick="closeModal('modal-apply-all'); renderPropList(); markUnsaved();">No, just this one</button>
-        <button class="btn btn-gold" style="flex:1; font-size:13px;" onclick="confirmApplyAll()">Yes, apply to all</button>
+    <div class="modal-body" style="padding:20px 20px 24px;">
+      <div id="apply-all-choice">
+        <p id="apply-all-desc" style="font-size:14px; color:var(--text-mid); line-height:1.6; text-align:center; margin-bottom:16px;"></p>
+        <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:4px;">
+          <button class="btn btn-fwd" style="width:100%; justify-content:center;" onclick="confirmApplyAll()">Yes</button>
+          <button class="btn btn-outline" style="width:100%; justify-content:center;" onclick="declineApplyAll()">Only Apply to This Property</button>
+        </div>
+        <div class="modal-checkbox-row">
+          <input type="checkbox" id="apply-all-dont-ask">
+          <label for="apply-all-dont-ask">Don't ask me again</label>
+        </div>
+      </div>
+      <div id="apply-all-confirm" style="display:none;">
+        <p id="apply-all-confirm-msg" style="font-size:14px; color:var(--text-mid); line-height:1.6; text-align:center; margin-bottom:20px;"></p>
+        <button class="btn btn-fwd" style="width:100%; justify-content:center;" onclick="closeModal('modal-apply-all')">Got it</button>
       </div>
     </div>
   </div>
@@ -5538,6 +5548,9 @@ function saveProperty() {
           : `Apply ${changed.length} cost changes to all properties?`;
         document.getElementById('apply-all-desc').textContent = desc;
         state._applyAllData = { singleField: false, prop, changed, specMap: {}, editIdx: state.editingPropIdx };
+        document.getElementById('apply-all-choice').style.display = '';
+        document.getElementById('apply-all-confirm').style.display = 'none';
+        const _cb = document.getElementById('apply-all-dont-ask'); if (_cb) _cb.checked = false;
         openModal('modal-apply-all');
       }
     }
@@ -6502,7 +6515,10 @@ function _dsApplyEdit(field, type, val, propIdx) {
           document.getElementById('apply-all-desc').textContent =
             `Change ${sharedFieldLabels[field]} to $${Math.round(val).toLocaleString()} for all properties?`;
           state._applyAllData = { singleField: true, key: field, specKey: null, newVal: val, editIdx: propIdx };
-          openModal('modal-apply-all');
+          document.getElementById('apply-all-choice').style.display = '';
+        document.getElementById('apply-all-confirm').style.display = 'none';
+        const _cb = document.getElementById('apply-all-dont-ask'); if (_cb) _cb.checked = false;
+        openModal('modal-apply-all');
         }
       }
     }
@@ -8324,8 +8340,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 function confirmApplyAll() {
-  closeModal('modal-apply-all');
+  const dontAsk = document.getElementById('apply-all-dont-ask')?.checked;
   const data = state._applyAllData || {};
+
+  // Apply changes
   if (data.singleField) {
     const { key, specKey, newVal, editIdx } = data;
     state.properties.forEach((p, i) => {
@@ -8335,12 +8353,12 @@ function confirmApplyAll() {
     });
   } else {
     const { prop, changed, specMap } = data;
-    if (!prop || !changed) return;
-    const editIdx = state.editingPropIdx;
+    if (!prop || !changed) { closeModal('modal-apply-all'); return; }
+    const editIdx = data.editIdx ?? state.editingPropIdx;
     state.properties.forEach((p, i) => {
       if (i === editIdx) return;
       changed.forEach(f => {
-        const val = prop[f.key] ?? prop[specMap[f.key]];
+        const val = prop[f.key] ?? (specMap[f.key] ? prop[specMap[f.key]] : undefined);
         if (val !== undefined) {
           p[f.key] = val;
           if (specMap[f.key]) p[specMap[f.key]] = val;
@@ -8348,10 +8366,43 @@ function confirmApplyAll() {
       });
     });
   }
+
+  // Handle "Don't ask me again"
+  if (dontAsk) {
+    state.settings.autoApplyCosts = 'all';
+    syncSetupToggles();
+    const msg = 'Future shared cost changes will automatically apply to all properties. You can change this on the Set Up page.';
+    document.getElementById('apply-all-confirm-msg').textContent = msg;
+    document.getElementById('apply-all-choice').style.display = 'none';
+    document.getElementById('apply-all-confirm').style.display = '';
+  } else {
+    closeModal('modal-apply-all');
+  }
+
   delete state._applyAllData;
   renderPropList();
   markUnsaved();
+  state.properties.forEach((_, i) => recalcCardTotals(i));
   if (document.getElementById('screen-results').classList.contains('active')) renderResults();
+  if (document.getElementById('screen-budget').classList.contains('active')) updateBudgetCalc();
+}
+
+function declineApplyAll() {
+  const dontAsk = document.getElementById('apply-all-dont-ask')?.checked;
+  if (dontAsk) {
+    state.settings.autoApplyCosts = 'one';
+    syncSetupToggles();
+    const msg = 'Future shared cost changes will only apply to the property you\'re editing. You can change this on the Set Up page.';
+    document.getElementById('apply-all-confirm-msg').textContent = msg;
+    document.getElementById('apply-all-choice').style.display = 'none';
+    document.getElementById('apply-all-confirm').style.display = '';
+    markUnsaved();
+  } else {
+    closeModal('modal-apply-all');
+    renderPropList();
+    markUnsaved();
+  }
+  delete state._applyAllData;
 }
 
 function scrollCompareRow(dir) {
