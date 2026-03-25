@@ -5603,7 +5603,9 @@ function saveProperty() {
       const oldVal = prev ? (prev[key] || 0) : -1;
       const newVal = prop[key] || 0;
       if (oldVal !== newVal && getCostAutoApply(key) === 'all') {
-        state.properties.forEach((p, i) => { if (i !== editIdx) p[key] = newVal; });
+        // Utilities: skip if current property has condo fees
+        if (key === 'utilAmt' && (prop.condoFee > 0)) continue;
+        _applySharedCost(key, newVal, editIdx);
       }
     }
   }
@@ -6554,12 +6556,12 @@ function _dsApplyEdit(field, type, val, propIdx) {
         inspect: 'Inspection & Appraisal', legal: 'Lawyer Fees', moving: 'Moving Expenses',
         reno: 'Repairs / Renovations'
       };
-      if (state.properties.length > 1 && field in sharedFieldLabels && val !== oldVal) {
+      // Utilities: skip apply-to-all if this property has condo fees
+      const _skipUtilSync = field === 'utilAmt' && state.properties[propIdx]?.condoFee > 0;
+      if (state.properties.length > 1 && field in sharedFieldLabels && val !== oldVal && !_skipUtilSync) {
         const autoApply = getCostAutoApply(field);
         if (autoApply === 'all') {
-          // Auto-apply without asking
-          state.properties.forEach((p, i) => { if (i !== propIdx) p[field] = val; });
-          state.properties.forEach((_, i) => recalcCardTotals(i));
+          _applySharedCost(field, val, propIdx);
           markUnsaved();
           showToast(`${sharedFieldLabels[field]} updated for all properties.`);
         } else if (autoApply !== 'one') {
@@ -6819,8 +6821,7 @@ function confirmMakeDefault(applyToAll) {
   if (type === 'cost') {
     const { costKey, costLabel } = _pendingDefault;
     if (applyToAll) {
-      state.properties.forEach((p, i) => { if (i !== propIdx) p[costKey] = value; });
-      state.properties.forEach((_, i) => recalcCardTotals(i));
+      _applySharedCost(costKey, value, propIdx);
       markUnsaved();
       showToast(costLabel + ' updated for all properties.');
     }
@@ -9088,20 +9089,24 @@ function ciUniConfirm(btn) {
     if (fieldInfo) {
       const { key, label } = fieldInfo;
       const isEdit = state.editingPropIdx !== null;
+
+      // Utilities: skip prompt if current property has condo fees
+      if (key === 'utilAmt') {
+        const hasCondo = document.getElementById('hypo-condo-yes')?.classList.contains('selected');
+        if (hasCondo) return; // don't prompt — condo utilities are property-specific
+      }
+
       const oldVal = isEdit && state._prevPropSnapshot ? (state._prevPropSnapshot[key] || 0) : null;
       // For edits: only prompt if value changed. For adds: always prompt if there are other properties.
       const shouldPrompt = isEdit ? (oldVal !== null && val !== oldVal) : true;
       if (shouldPrompt) {
         const autoApply = getCostAutoApply(key);
         if (autoApply === 'all') {
-          // Silently apply to all other properties
           const editIdx = isEdit ? state.editingPropIdx : state.properties.length - 1;
-          state.properties.forEach((p, i) => { if (i !== editIdx) p[key] = val; });
-          state.properties.forEach((_, i) => recalcCardTotals(i));
+          _applySharedCost(key, val, editIdx);
           markUnsaved();
           showToast(label + ' updated for all properties.');
         } else if (autoApply !== 'one') {
-          // Show the apply-to-all modal
           const editIdx = isEdit ? state.editingPropIdx : state.properties.length - 1;
           state._applyAllData = { singleField: true, key, specKey: null, newVal: val, editIdx };
           document.getElementById('modal-make-default-title').textContent = 'Apply to All Properties?';
@@ -9116,6 +9121,17 @@ function ciUniConfirm(btn) {
       }
     }
   }
+}
+
+// Apply a shared cost to other properties, respecting utility/condo rules
+function _applySharedCost(key, val, editIdx) {
+  state.properties.forEach((p, i) => {
+    if (i === editIdx) return;
+    // Utilities: only apply to properties WITHOUT condo fees
+    if (key === 'utilAmt' && (p.condoFee > 0)) return;
+    p[key] = val;
+  });
+  state.properties.forEach((_, i) => recalcCardTotals(i));
 }
 
 function ciUniCancel(btn) {
@@ -9211,11 +9227,12 @@ function uniRowConfirm(btn) {
     inspect: 'Inspection & Appraisal', legal: 'Lawyer Fees', moving: 'Moving Expenses',
     reno: 'Repairs / Renovations'
   };
-  if (state.properties.length > 1 && field in sharedFieldLabels && val !== oldVal) {
+  // Utilities: skip apply-to-all if this property has condo fees
+  const _skipUtil = field === 'utilAmt' && state.properties[propIdx]?.condoFee > 0;
+  if (state.properties.length > 1 && field in sharedFieldLabels && val !== oldVal && !_skipUtil) {
     const autoApply = getCostAutoApply(field);
     if (autoApply === 'all') {
-      state.properties.forEach((p, i) => { if (i !== propIdx) p[field] = val; });
-      state.properties.forEach((_, i) => recalcCardTotals(i));
+      _applySharedCost(field, val, propIdx);
       markUnsaved();
       showToast(`${sharedFieldLabels[field]} updated for all properties.`);
     } else if (autoApply !== 'one') {
