@@ -6447,6 +6447,7 @@ function _dsApplyEdit(field, type, val, propIdx) {
         document.getElementById('apply-all-desc').textContent =
           `Change ${sharedFieldLabels[field]} to $${Math.round(val).toLocaleString()} for all properties?`;
         state._applyAllData = { singleField: true, key: field, specKey: null, newVal: val, editIdx: propIdx };
+        openModal('modal-apply-all');
       }
     }
   }
