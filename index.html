@@ -5415,6 +5415,12 @@ function clearSaveError() {
 
 function saveProperty() {
   clearSaveError();
+  // Confirm any open inline edits in the modal before saving
+  document.querySelectorAll('#modal-add-prop .ci-uni-row.editing').forEach(r => {
+    ciUniConfirm(r.querySelector('.btn-confirm'));
+  });
+  const taxRow = document.getElementById('hypo-tax-row');
+  if (taxRow && taxRow.classList.contains('editing')) taxRowConfirm();
   const type = state._pendingPropType || 'hypothetical';
   // In edit mode, also check the edit-display input in case user changed it without blurring
   const editPriceInput = document.getElementById('hypo-price-edit-display');
