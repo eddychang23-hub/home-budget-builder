@@ -2891,12 +2891,74 @@ div[id^="kf-rate-val-"] {
 
       <!-- Shared costs -->
       <div class="q-block">
-        <div class="q-label">Shared costs across properties</div>
-        <div class="q-hint">When you change utilities, insurance, lawyer fees, moving expenses, or other shared costs on one property, should it update the others?</div>
-        <div class="setup-toggle-wrap">
-          <button class="setup-toggle-btn active" id="setup-costs-ask" onclick="setAutoApply('costs', false)">Always ask</button>
-          <button class="setup-toggle-btn" id="setup-costs-all" onclick="setAutoApply('costs', 'all')">Apply to all</button>
-          <button class="setup-toggle-btn" id="setup-costs-one" onclick="setAutoApply('costs', 'one')">Property only</button>
+        <div class="q-label">Updating Expenses</div>
+        <div class="q-hint" style="margin-bottom:20px;">Changing or adding the following costs will update across all properties.</div>
+
+        <div style="font-size:13px; font-weight:700; color:var(--navy); text-transform:uppercase; letter-spacing:0.6px; margin-bottom:12px; padding-bottom:6px; border-bottom:1.5px solid var(--border-light);">Upfront Costs</div>
+
+        <div style="margin-bottom:14px;">
+          <div class="q-label" style="font-size:13px; margin-bottom:4px;">Inspection & Appraisal</div>
+          <div class="setup-toggle-wrap">
+            <button class="setup-toggle-btn active" id="setup-cost-inspect-ask" onclick="setCostAutoApply('inspect', false)">Always ask</button>
+            <button class="setup-toggle-btn" id="setup-cost-inspect-all" onclick="setCostAutoApply('inspect', 'all')">Apply to all</button>
+            <button class="setup-toggle-btn" id="setup-cost-inspect-one" onclick="setCostAutoApply('inspect', 'one')">Property only</button>
+          </div>
+        </div>
+
+        <div style="margin-bottom:14px;">
+          <div class="q-label" style="font-size:13px; margin-bottom:4px;">Lawyer Fees</div>
+          <div class="setup-toggle-wrap">
+            <button class="setup-toggle-btn active" id="setup-cost-legal-ask" onclick="setCostAutoApply('legal', false)">Always ask</button>
+            <button class="setup-toggle-btn" id="setup-cost-legal-all" onclick="setCostAutoApply('legal', 'all')">Apply to all</button>
+            <button class="setup-toggle-btn" id="setup-cost-legal-one" onclick="setCostAutoApply('legal', 'one')">Property only</button>
+          </div>
+        </div>
+
+        <div style="margin-bottom:14px;">
+          <div class="q-label" style="font-size:13px; margin-bottom:4px;">Moving Expenses</div>
+          <div class="setup-toggle-wrap">
+            <button class="setup-toggle-btn active" id="setup-cost-moving-ask" onclick="setCostAutoApply('moving', false)">Always ask</button>
+            <button class="setup-toggle-btn" id="setup-cost-moving-all" onclick="setCostAutoApply('moving', 'all')">Apply to all</button>
+            <button class="setup-toggle-btn" id="setup-cost-moving-one" onclick="setCostAutoApply('moving', 'one')">Property only</button>
+          </div>
+        </div>
+
+        <div style="margin-bottom:24px;">
+          <div class="q-label" style="font-size:13px; margin-bottom:4px;">Repairs / Renovations</div>
+          <div class="setup-toggle-wrap">
+            <button class="setup-toggle-btn active" id="setup-cost-reno-ask" onclick="setCostAutoApply('reno', false)">Always ask</button>
+            <button class="setup-toggle-btn" id="setup-cost-reno-all" onclick="setCostAutoApply('reno', 'all')">Apply to all</button>
+            <button class="setup-toggle-btn" id="setup-cost-reno-one" onclick="setCostAutoApply('reno', 'one')">Property only</button>
+          </div>
+        </div>
+
+        <div style="font-size:13px; font-weight:700; color:var(--navy); text-transform:uppercase; letter-spacing:0.6px; margin-bottom:12px; padding-bottom:6px; border-bottom:1.5px solid var(--border-light);">Monthly Costs</div>
+
+        <div style="margin-bottom:14px;">
+          <div class="q-label" style="font-size:13px; margin-bottom:4px;">Utilities</div>
+          <div class="setup-toggle-wrap">
+            <button class="setup-toggle-btn active" id="setup-cost-utilAmt-ask" onclick="setCostAutoApply('utilAmt', false)">Always ask</button>
+            <button class="setup-toggle-btn" id="setup-cost-utilAmt-all" onclick="setCostAutoApply('utilAmt', 'all')">Apply to all</button>
+            <button class="setup-toggle-btn" id="setup-cost-utilAmt-one" onclick="setCostAutoApply('utilAmt', 'one')">Property only</button>
+          </div>
+        </div>
+
+        <div style="margin-bottom:14px;">
+          <div class="q-label" style="font-size:13px; margin-bottom:4px;">Home Insurance</div>
+          <div class="setup-toggle-wrap">
+            <button class="setup-toggle-btn active" id="setup-cost-insureAmt-ask" onclick="setCostAutoApply('insureAmt', false)">Always ask</button>
+            <button class="setup-toggle-btn" id="setup-cost-insureAmt-all" onclick="setCostAutoApply('insureAmt', 'all')">Apply to all</button>
+            <button class="setup-toggle-btn" id="setup-cost-insureAmt-one" onclick="setCostAutoApply('insureAmt', 'one')">Property only</button>
+          </div>
+        </div>
+
+        <div>
+          <div class="q-label" style="font-size:13px; margin-bottom:4px;">Internet & Cable</div>
+          <div class="setup-toggle-wrap">
+            <button class="setup-toggle-btn active" id="setup-cost-internetAmt-ask" onclick="setCostAutoApply('internetAmt', false)">Always ask</button>
+            <button class="setup-toggle-btn" id="setup-cost-internetAmt-all" onclick="setCostAutoApply('internetAmt', 'all')">Apply to all</button>
+            <button class="setup-toggle-btn" id="setup-cost-internetAmt-one" onclick="setCostAutoApply('internetAmt', 'one')">Property only</button>
+          </div>
         </div>
       </div>
 
@@ -4328,7 +4390,7 @@ const DEFAULT_SETTINGS = {
   autoApplyRate: null,
   autoApplyDP: null,
   autoApplyAmort: null,
-  autoApplyCosts: null,
+  autoApplyCosts: {}, // per-field: { inspect: null, legal: null, moving: null, reno: null, utilAmt: null, insureAmt: null, internetAmt: null }
 };
 
 let state = {
@@ -5534,20 +5596,27 @@ function saveProperty() {
       if (oldVal !== newVal) changed.push({ key, label, newVal });
     }
     if (changed.length > 0) {
-      const autoApply = state.settings.autoApplyCosts;
-      if (autoApply === 'all') {
-        changed.forEach(({ key, newVal }) => {
+      // Auto-apply fields set to 'all', filter out 'one' fields, ask for the rest
+      const autoAll = changed.filter(c => getCostAutoApply(c.key) === 'all');
+      const askFields = changed.filter(c => { const v = getCostAutoApply(c.key); return v !== 'all' && v !== 'one'; });
+
+      // Silently apply 'all' fields
+      if (autoAll.length > 0) {
+        autoAll.forEach(({ key, newVal }) => {
           state.properties.forEach((p, i) => { if (i !== state.editingPropIdx) p[key] = newVal; });
         });
         state.properties.forEach((_, i) => recalcCardTotals(i));
         markUnsaved();
         showToast('Shared costs updated for all properties.');
-      } else if (autoApply !== 'one') {
-        const desc = changed.length === 1
-          ? `Change ${changed[0].label} to $${Math.round(changed[0].newVal).toLocaleString()} for all properties?`
-          : `Apply ${changed.length} cost changes to all properties?`;
+      }
+
+      // Prompt for 'ask' fields
+      if (askFields.length > 0) {
+        const desc = askFields.length === 1
+          ? `Change ${askFields[0].label} to $${Math.round(askFields[0].newVal).toLocaleString()} for all properties?`
+          : `Apply ${askFields.length} cost changes to all properties?`;
         document.getElementById('apply-all-desc').textContent = desc;
-        state._applyAllData = { singleField: false, prop, changed, specMap: {}, editIdx: state.editingPropIdx };
+        state._applyAllData = { singleField: false, prop, changed: askFields, specMap: {}, editIdx: state.editingPropIdx };
         document.getElementById('apply-all-choice').style.display = '';
         document.getElementById('apply-all-confirm').style.display = 'none';
         const _cb = document.getElementById('apply-all-dont-ask'); if (_cb) _cb.checked = false;
@@ -6503,7 +6572,7 @@ function _dsApplyEdit(field, type, val, propIdx) {
         reno: 'Repairs / Renovations'
       };
       if (state.properties.length > 1 && field in sharedFieldLabels && val !== oldVal) {
-        const autoApply = state.settings.autoApplyCosts;
+        const autoApply = getCostAutoApply(field);
         if (autoApply === 'all') {
           // Auto-apply without asking
           state.properties.forEach((p, i) => { if (i !== propIdx) p[field] = val; });
@@ -6668,9 +6737,24 @@ function setAutoApply(type, val) {
   if (type === 'rate')  state.settings.autoApplyRate  = val;
   else if (type === 'dp') state.settings.autoApplyDP  = val;
   else if (type === 'amort') state.settings.autoApplyAmort = val;
-  else if (type === 'costs') state.settings.autoApplyCosts = val;
+  // 'costs' kept for backwards compat — per-field uses setCostAutoApply
   syncSetupToggles();
   markUnsaved();
+}
+
+function setCostAutoApply(field, val) {
+  if (!state.settings.autoApplyCosts || typeof state.settings.autoApplyCosts === 'string') {
+    state.settings.autoApplyCosts = {};
+  }
+  state.settings.autoApplyCosts[field] = val;
+  syncSetupToggles();
+  markUnsaved();
+}
+
+function getCostAutoApply(field) {
+  const costs = state.settings.autoApplyCosts;
+  if (!costs || typeof costs === 'string') return costs || null; // backwards compat
+  return costs[field] || null;
 }
 
 function syncSetupToggles() {
@@ -6693,11 +6777,14 @@ function syncSetupToggles() {
   document.getElementById('setup-amort-ask')?.classList.toggle('active', !amortVal);
   document.getElementById('setup-amort-all')?.classList.toggle('active', amortVal === 'all');
   document.getElementById('setup-amort-one')?.classList.toggle('active', amortVal === 'one');
-  // Shared costs
-  const costsVal = state.settings.autoApplyCosts;
-  document.getElementById('setup-costs-ask')?.classList.toggle('active', !costsVal);
-  document.getElementById('setup-costs-all')?.classList.toggle('active', costsVal === 'all');
-  document.getElementById('setup-costs-one')?.classList.toggle('active', costsVal === 'one');
+  // Per-field shared costs
+  const costs = state.settings.autoApplyCosts || {};
+  ['inspect','legal','moving','reno','utilAmt','insureAmt','internetAmt'].forEach(key => {
+    const v = costs[key];
+    document.getElementById('setup-cost-' + key + '-ask')?.classList.toggle('active', !v);
+    document.getElementById('setup-cost-' + key + '-all')?.classList.toggle('active', v === 'all');
+    document.getElementById('setup-cost-' + key + '-one')?.classList.toggle('active', v === 'one');
+  });
 }
 
 // Called when user edits rate or DP on a card — decides whether to show modal or auto-apply
@@ -8369,8 +8456,9 @@ function confirmApplyAll() {
 
   // Handle "Don't ask me again"
   if (dontAsk) {
-    state.settings.autoApplyCosts = 'all';
-    syncSetupToggles();
+    // Set per-field to 'all' for all fields involved
+    const fields = data.singleField ? [data.key] : (data.changed || []).map(c => c.key);
+    fields.forEach(f => setCostAutoApply(f, 'all'));
     const msg = 'Future shared cost changes will automatically apply to all properties. You can change this on the Set Up page.';
     document.getElementById('apply-all-confirm-msg').textContent = msg;
     document.getElementById('apply-all-choice').style.display = 'none';
@@ -8389,9 +8477,10 @@ function confirmApplyAll() {
 
 function declineApplyAll() {
   const dontAsk = document.getElementById('apply-all-dont-ask')?.checked;
+  const data = state._applyAllData || {};
   if (dontAsk) {
-    state.settings.autoApplyCosts = 'one';
-    syncSetupToggles();
+    const fields = data.singleField ? [data.key] : (data.changed || []).map(c => c.key);
+    fields.forEach(f => setCostAutoApply(f, 'one'));
     const msg = 'Future shared cost changes will only apply to the property you\'re editing. You can change this on the Set Up page.';
     document.getElementById('apply-all-confirm-msg').textContent = msg;
     document.getElementById('apply-all-choice').style.display = 'none';
@@ -9068,7 +9157,7 @@ function uniRowConfirm(btn) {
     reno: 'Repairs / Renovations'
   };
   if (state.properties.length > 1 && field in sharedFieldLabels && val !== oldVal) {
-    const autoApply = state.settings.autoApplyCosts;
+    const autoApply = getCostAutoApply(field);
     if (autoApply === 'all') {
       state.properties.forEach((p, i) => { if (i !== propIdx) p[field] = val; });
       state.properties.forEach((_, i) => recalcCardTotals(i));
